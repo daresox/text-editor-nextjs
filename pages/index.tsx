@@ -1,9 +1,72 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
-import Image from 'next/image'
-import styles from '../styles/Home.module.css'
+import type { NextPage } from 'next';
+import Head from 'next/head';
+import dynamic from 'next/dynamic';
+import styles from '../styles/Home.module.css';
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import 'react-quill/dist/quill.snow.css';
+import React from 'react';
 
 const Home: NextPage = () => {
+  const [value, setValue] = React.useState('');
+  const formats = [
+    'header',
+    'bold',
+    'italic',
+    'underline',
+    'strike',
+    'blockquote',
+    'list',
+    'bullet',
+    'indent',
+    'background',
+    'color',
+  ];
+  const modules = {
+    toolbar: [
+      [{ header: [1, 2, false] }],
+      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+      [{ background: [] }],
+      [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }],
+      ['link', 'image'],
+      ['clean'],
+    ],
+  };
+
+  function formattingStyle(input: string) {
+    // 1. remove line breaks
+    var stringStripper = /(\n|\r| class=(")?Mso[a-zA-Z]+(")?)/g;
+    var output = input.replace(stringStripper, ' ');
+
+    // 2. strip Word generated HTML comments
+    var commentSripper = new RegExp('<!--(.*?)-->', 'g');
+    var output = output.replace(commentSripper, '');
+    var tagStripper = new RegExp(
+      '<(/)*(meta|link|span|em|\\?xml:|st1:|o:|font)(.*?)>',
+      'gi'
+    );
+    // 3. remove tags leave content if any
+    output = output.replace(tagStripper, '');
+    // 4. Remove everything in between and including tags '<style(.)style(.)>'
+    var badTags = ['style', 'script', 'applet', 'embed', 'noframes', 'noscript'];
+
+    for (var i = 0; i < badTags.length; i++) {
+      tagStripper = new RegExp('<' + badTags[i] + '.*?' + badTags[i] + '(.*?)>', 'gi');
+      output = output.replace(tagStripper, '');
+    }
+    // 5. remove attributes ' style="..."'
+    var badAttributes = ['style', 'start'];
+    for (var i = 0; i < badAttributes.length; i++) {
+      var attributeStripper = new RegExp(' ' + badAttributes[i] + '="(.*?)"', 'gi');
+      output = output.replace(attributeStripper, '');
+    }
+    return output;
+  }
+
+  const handleChange = (content: string) => {
+    const valueFormatted = formattingStyle(content);
+    setValue(valueFormatted);
+  };
+
   return (
     <div className={styles.container}>
       <Head>
@@ -12,61 +75,17 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.tsx</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
+      <main>
+        <ReactQuill
+          theme="snow"
+          modules={modules}
+          onChange={handleChange}
+          value={value}
+          formats={formats}
+        />
       </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
     </div>
-  )
-}
+  );
+};
 
-export default Home
+export default Home;
